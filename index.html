@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catchup</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a; --text:#e8eaf0; --muted:#8b93a5;
+    --accent:#6ee7b7; --warn:#fbbf24; --good:#34d399; --blue:#60a5fa;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;height:100vh;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 22px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:baseline;gap:12px}
+  .brand h1{margin:0;font-size:20px}
+  .brand span{color:var(--muted);font-size:13px}
+  .right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .pill{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+  .pill.live{color:var(--good);border-color:#1f6f55}
+  .pill.cached{color:var(--warn);border-color:#6b5316}
+  .pill.tg{color:var(--blue);border-color:#1e4a7a}
+  button,a.btn{background:var(--accent);color:#06281d;border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+  button.ghost,a.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+  button:disabled{opacity:.5;cursor:default}
+  main{flex:1;display:grid;grid-template-columns:minmax(320px,1fr) minmax(360px,1.15fr);gap:16px;padding:16px 22px;min-height:0}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;min-height:0}
+  section>h2{margin:0;padding:12px 16px;font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);border-bottom:1px solid var(--line)}
+  #chat{flex:1;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:84%}
+  .msg .who{font-size:12px;color:var(--muted);margin:0 0 2px 4px}
+  .via{color:var(--blue);margin-left:6px}
+  .bubble{background:var(--panel2);padding:8px 12px;border-radius:14px;border-top-left-radius:4px;display:inline-block;word-break:break-word}
+  .caught{margin:4px 0 0 4px;font-size:12px;color:var(--accent)}
+  .caught.none{color:var(--muted)}
+  .caught.err{color:#fca5a5}
+  .composer{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+  .composer select,.composer input{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}
+  .composer input{flex:1;min-width:0}
+  #board{flex:1;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:16px}
+  .card h3{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .count{font-size:12px;color:var(--muted);font-weight:400}
+  .item{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  .item.new{animation:pop .4s ease}
+  @keyframes pop{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+  .item .t{font-weight:600}
+  .item .m{color:var(--muted);font-size:13px;margin-top:2px}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;margin-left:6px}
+  .tag.open{background:#3b2f0c;color:var(--warn)}
+  .tag.done{background:#0c3a2b;color:var(--good)}
+  .tag.un{background:#33211f;color:#fca5a5}
+  .empty{color:var(--muted);font-size:13px;padding:6px 2px}
+  footer{padding:8px 22px 12px;color:var(--muted);font-size:12px}
+  @media (max-width:820px){main{grid-template-columns:1fr;overflow:auto}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><h1>Catchup</h1><span>The group chat that remembers what you decided.</span></div>
+  <div class="right">
+    <span id="tgpill" class="pill tg" style="display:none"></span>
+    <span id="status" class="pill">connecting...</span>
+    <button id="play">Play demo chat</button>
+    <a class="btn ghost" id="cal" href="/api/calendar.ics">Add plans to calendar</a>
+    <button id="reset" class="ghost">Reset</button>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>Group chat</h2>
+    <div id="chat"></div>
+    <form class="composer" id="form">
+      <select id="sender"><option>Sam</option><option>Priya</option><option>Jay</option><option>Mia</option></select>
+      <input id="text" placeholder="Type like a friend would. Nobody asks the AI anything." autocomplete="off">
+      <button type="submit">Send</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>What the AI picked up (nobody asked it to)</h2>
+    <div id="board">
+      <div class="card"><h3>Plans <span class="count" id="c-events"></span></h3><div id="events"></div></div>
+      <div class="card"><h3>Tasks <span class="count" id="c-tasks"></span></h3><div id="tasks"></div></div>
+      <div class="card"><h3>Decisions <span class="count" id="c-decisions"></span></h3><div id="decisions"></div></div>
+    </div>
+  </section>
+</main>
+<footer id="foot"></footer>
+
+<script>
+// The scripted demo pretends "today" is Monday 12 Oct 2026 so "Saturday" always means 17 Oct.
+// Real messages (typed here or sent from Telegram) use the real date.
+const DEMO_TODAY = "2026-10-12";
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const seen = new Set();          // board items already shown, so only NEW ones animate
+let lastSig = { chat: "", board: "" };
+let playing = false, stopDemo = false;
+
+function fmtDate(iso, weekday) {
+  const d = new Date(iso + "T00:00:00");
+  if (!iso || isNaN(d)) return weekday || "";
+  return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
+}
+function item(key) { const it = el("div", "item" + (seen.has(key) ? "" : " new")); seen.add(key); return it; }
+
+function renderChat(messages) {
+  const sig = messages.map((m) => m.id + m.status + m.notes.length).join(",");
+  if (sig === lastSig.chat) return;
+  lastSig.chat = sig;
+  const chat = $("chat");
+  const atBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80;
+  chat.replaceChildren();
+  messages.forEach((m) => {
+    const wrap = el("div", "msg");
+    const who = el("div", "who", m.from);
+    if (m.via === "telegram") who.append(el("span", "via", "via Telegram"));
+    wrap.append(who, el("div", "bubble", m.text));
+    let note;
+    if (m.status === "reading") note = el("div", "caught none", "reading...");
+    else if (m.status === "error") note = el("div", "caught err", "AI unavailable (check the terminal)");
+    else if (m.notes.length) note = el("div", "caught", "AI: " + m.notes.join(" · "));
+    else note = el("div", "caught none", "nothing to act on");
+    wrap.append(note);
+    chat.append(wrap);
+  });
+  if (atBottom) chat.scrollTop = chat.scrollHeight;
+}
+
+function renderBoard(b) {
+  const sig = JSON.stringify([b.events, b.tasks, b.decisions]);
+  if (sig === lastSig.board) return;
+  lastSig.board = sig;
+  const ev = $("events"), tk = $("tasks"), dc = $("decisions");
+  ev.replaceChildren(); tk.replaceChildren(); dc.replaceChildren();
+
+  b.events.forEach((e) => {
+    const it = item("e|" + e.title + e.date + e.time);
+    it.append(el("div", "t", e.title));
+    it.append(el("div", "m", [fmtDate(e.date, e.weekday), e.time, e.place].filter(Boolean).join(" · ")));
+    ev.append(it);
+  });
+  if (!b.events.length) ev.append(el("div", "empty", "No plans yet."));
+
+  b.tasks.forEach((t) => {
+    const it = item("t|" + t.what + t.who);
+    const top = el("div", "t", t.what);
+    top.append(el("span", "tag " + (t.who === "Unassigned" ? "un" : "done"), t.who));
+    it.append(top); tk.append(it);
+  });
+  if (!b.tasks.length) tk.append(el("div", "empty", "No tasks yet."));
+
+  b.decisions.forEach((d) => {
+    const it = item("d|" + d.question + d.status);
+    const top = el("div", "t", d.question);
+    top.append(el("span", "tag " + (d.status === "open" ? "open" : "done"), d.status === "open" ? "Still undecided" : "Decided"));
+    it.append(top);
+    if (d.status === "resolved") it.append(el("div", "m", d.answer));
+    dc.append(it);
+  });
+  if (!b.decisions.length) dc.append(el("div", "empty", "Nothing waiting on a decision."));
+
+  $("c-events").textContent = b.events.length ? `(${b.events.length})` : "";
+  $("c-tasks").textContent = b.tasks.length ? `(${b.tasks.length})` : "";
+  $("c-decisions").textContent = b.decisions.length ? `(${b.decisions.filter((d) => d.status === "open").length} open)` : "";
+}
+
+function renderStatus(b) {
+  const s = $("status"), src = b.ai.source;
+  if (src && src.startsWith("live")) { s.textContent = "Live AI (" + src.slice(5) + ")"; s.className = "pill live"; }
+  else if (src && src.startsWith("cached")) { s.textContent = "Saved demo output (no live AI)"; s.className = "pill cached"; }
+  else if (src === "error") { s.textContent = "AI error (see terminal)"; s.className = "pill cached"; }
+  else { s.textContent = b.ai.hasKey ? "Live AI ready" : "No AI key: saved demo output only"; s.className = "pill " + (b.ai.hasKey ? "live" : "cached"); }
+  const t = $("tgpill");
+  if (b.telegram.enabled) {
+    t.style.display = "";
+    t.textContent = b.telegram.connected ? "Telegram: listening as @" + b.telegram.botName : "Telegram: not connected";
+    if (b.telegram.error) t.textContent += " (" + b.telegram.error.slice(0, 60) + ")";
+  }
+}
+
+async function poll() {
+  try {
+    const b = await (await fetch("/api/board")).json();
+    renderChat(b.messages); renderBoard(b); renderStatus(b);
+  } catch (_) { $("status").textContent = "server not reachable"; $("status").className = "pill cached"; }
+}
+
+async function send(from, text, today) {
+  await fetch("/api/message", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from, text, today }) });
+}
+
+async function playDemo() {
+  if (playing) return;
+  await resetBoard();
+  playing = true; stopDemo = false; $("play").disabled = true;
+  const script = await (await fetch("/api/demo-chat")).json();
+  for (const m of script) {
+    if (stopDemo) break;
+    await send(m.from, m.text, DEMO_TODAY);
+    await sleep(1200);
+  }
+  playing = false; $("play").disabled = false;
+}
+
+async function resetBoard() {
+  stopDemo = true; playing = false; $("play").disabled = false;
+  await fetch("/api/reset", { method: "POST" });
+  seen.clear(); lastSig = { chat: "", board: "" };
+  await poll();
+}
+
+$("play").onclick = playDemo;
+$("reset").onclick = resetBoard;
+$("form").onsubmit = (e) => {
+  e.preventDefault();
+  const t = $("text").value.trim();
+  if (!t) return;
+  $("text").value = "";
+  send($("sender").value, t);
+};
+
+poll(); setInterval(poll, 1000);
+$("foot").textContent = "The scripted demo pretends today is Monday 12 Oct 2026 so \"Saturday\" always resolves to 17 Oct. Messages typed here or sent from Telegram use the real date. The demo chat is scripted, so no real people's messages are involved.";
+</script>
+</body>
+</html>

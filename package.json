@@ -1,0 +1,8 @@
+{
+  "name": "catchup",
+  "version": "1.0.0",
+  "description": "An AI that quietly turns a group chat into plans, tasks and open decisions. Built for the QMUL AI Hackathon (theme: Invisible AI).",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "license": "MIT"
+}

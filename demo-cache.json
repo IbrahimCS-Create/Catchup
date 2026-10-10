@@ -1,0 +1,47 @@
+{
+  "ok so are we doing Nando's Friday or Saturday?": {
+    "events": [], "tasks": [],
+    "decisions_opened": [{"question": "Nando's on Friday or Saturday?"}],
+    "decisions_resolved": []
+  },
+  "Saturday works better for me": {"events": [], "tasks": [], "decisions_opened": [], "decisions_resolved": []},
+  "same, Saturday is good": {"events": [], "tasks": [], "decisions_opened": [], "decisions_resolved": []},
+  "Saturday 7pm it is then": {
+    "events": [{"title": "Dinner at Nando's", "date": "2026-10-17", "weekday": "Saturday", "time": "19:00", "place": "Nando's"}],
+    "tasks": [],
+    "decisions_opened": [],
+    "decisions_resolved": [{"match": "Nando's on Friday or Saturday?", "answer": "Saturday 7pm"}]
+  },
+  "I'll book the table": {
+    "events": [], "tasks": [{"what": "Book the table at Nando's", "who": "Priya"}],
+    "decisions_opened": [], "decisions_resolved": []
+  },
+  "can someone get a cake? it's Mia's birthday": {
+    "events": [], "tasks": [{"what": "Get a birthday cake for Mia", "who": "Unassigned"}],
+    "decisions_opened": [], "decisions_resolved": []
+  },
+  "I'll grab the cake": {
+    "events": [], "tasks": [{"what": "Get a birthday cake for Mia", "who": "Sam"}],
+    "decisions_opened": [], "decisions_resolved": []
+  },
+  "omg you guys, stop it 😭": {"events": [], "tasks": [], "decisions_opened": [], "decisions_resolved": []},
+  "should we all meet at the station first or just go straight there?": {
+    "events": [], "tasks": [],
+    "decisions_opened": [{"question": "Meet at the station first or go straight to Nando's?"}],
+    "decisions_resolved": []
+  },
+  "meet at Balham station 6:30 then we walk over": {
+    "events": [{"title": "Meet before dinner", "date": "2026-10-17", "weekday": "Saturday", "time": "18:30", "place": "Balham station"}],
+    "tasks": [],
+    "decisions_opened": [],
+    "decisions_resolved": [{"match": "Meet at the station first or go straight to Nando's?", "answer": "Meet at Balham station 6:30"}]
+  },
+  "can someone text Dan to check he's coming?": {
+    "events": [], "tasks": [{"what": "Text Dan to confirm he's coming", "who": "Unassigned"}],
+    "decisions_opened": [], "decisions_resolved": []
+  },
+  "I'll text Dan": {
+    "events": [], "tasks": [{"what": "Text Dan to confirm he's coming", "who": "Priya"}],
+    "decisions_opened": [], "decisions_resolved": []
+  }
+}
